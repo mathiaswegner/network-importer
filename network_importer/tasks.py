@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import ipaddress
 import logging
 import os
 import socket
@@ -103,12 +104,27 @@ def tcp_ping(task: Task, ports: List[int], timeout: int = 2, host: Optional[str]
 
     host = host or task.host.hostname
 
+    isipv6 = False
+    try:
+        ipaddr = ipaddress.ip_address(host)
+        if ipaddr.version == 6:
+            isipv6 = True
+    except ValueError:
+        pass
+
     result = {}
     for port in ports:
-        skt = socket.socket()
+        if isipv6:
+            skt = socket.socket(socket.AF_INET6, socket.SOCK_STREAM, 0)
+        else:
+            skt = socket.socket()
         skt.settimeout(timeout)
         try:
-            status = skt.connect_ex((host, port))
+            if isipv6:
+                hostargs = (host, port, 0, 0)
+            else:
+                hostargs = (host, port)
+            status = skt.connect_ex(hostargs)
             if status == 0:  # pylint: disable=simplifiable-if-statement
                 connection = True
             else:
