@@ -18,6 +18,7 @@ import os
 import socket
 from typing import Optional, List
 
+import netaddr
 import yaml
 from nornir.core.task import Result, Task
 
@@ -105,10 +106,15 @@ def tcp_ping(task: Task, ports: List[int], timeout: int = 2, host: Optional[str]
 
     result = {}
     for port in ports:
-        skt = socket.socket()
+        if netaddr.IPAddress(host).version == 6:
+            skt = socket.socket(socket.AF_INET6, socket.SOCK_STREAM, 0)
+            hostargs = (host, port, 0, 0)
+        else:
+            skt = socket.socket()
+            hostargs = (host, port)
         skt.settimeout(timeout)
         try:
-            status = skt.connect_ex((host, port))
+            status = skt.connect_ex(hostargs)
             if status == 0:  # pylint: disable=simplifiable-if-statement
                 connection = True
             else:
