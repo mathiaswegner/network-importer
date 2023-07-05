@@ -203,8 +203,14 @@ class NautobotAPIAdapter(BaseAdapter):
 
         for nb_vlan in vlans:
             vlan = self.vlan.create_from_pynautobot(diffsync=self, obj=nb_vlan, site_name=site.name)
-            self.add(vlan)
-            site.add_child(vlan)
+            try:
+                self.add(vlan)
+            except ObjectAlreadyExists:
+                LOGGER.warning("%s | VLAN %s is already present for site %s", self.name, vlan.vid, site.name)
+            try:
+                site.add_child(vlan)
+            except ObjectAlreadyExists:
+                LOGGER.warning("%s | VLAN %s is already present for site %s", self.name, vlan.vid, site.name)
 
     def convert_interface_from_nautobot(
         self, device, intf, site=None

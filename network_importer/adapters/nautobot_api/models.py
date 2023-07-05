@@ -176,6 +176,9 @@ class NautobotInterface(Interface):
 
         try:
             nb_params = item.translate_attrs_for_nautobot(attrs)
+            if len(nb_params.get('tagged_vlans', [])) > 0 and not \
+                    nb_params.get('mode'):
+                nb_params['mode'] = 'tagged'
             intf = diffsync.nautobot.dcim.interfaces.create(**nb_params)
             LOGGER.info("Created interface %s (%s) in Nautobot", intf.name, intf.id)
         except pynautobot.core.query.RequestError as exc:
@@ -220,6 +223,9 @@ class NautobotInterface(Interface):
 
         current_attrs.update(attrs)
         nb_params = self.translate_attrs_for_nautobot(current_attrs)
+        if len(nb_params.get('tagged_vlans', [])) > 0 and not \
+                nb_params.get('mode'):
+            nb_params['mode'] = 'tagged'
         LOGGER.debug("Update interface : %s", nb_params)
         try:
             intf = self.diffsync.nautobot.dcim.interfaces.get(self.remote_id)
