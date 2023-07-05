@@ -453,6 +453,10 @@ class NetworkImporterAdapter(BaseAdapter):
                 continue
 
             for interface, neighbors in items[1][0].result["neighbors"].items():
+                if "." in dev_name:
+                    dev_name = dev_name.split(".")[0]
+                if "." in neighbors[0]["hostname"]:
+                    neighbors[0]["hostname"] = neighbors[0]["hostname"].split(".")[0]
                 cable = self.cable(
                     device_a_name=dev_name,
                     interface_a_name=interface,
