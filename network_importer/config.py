@@ -1,6 +1,7 @@
 """Settings definition for the network importer."""
 # pylint: disable=invalid-name,redefined-outer-name
 
+import getpass
 import os
 import sys
 from pathlib import Path
@@ -215,12 +216,30 @@ def load(config_file_name="network_importer.toml", config_data=None):
 
     if config_data:
         SETTINGS = _configure_backend(Settings(**config_data))
+        if not SETTINGS.network.password:
+            SETTINGS.network.password = getpass.getpass("Please enter password for network devices: ")
+        if SETTINGS.network.enable \
+                and not SETTINGS.network.napalm_extras \
+                and not SETTINGS.network.napalm_extras.optional_args \
+                and not SETTINGS.network.napalm_extras.optional_args.secret:
+            SETTINGS.network.napalm_extras.optional_args.secret = getpass.getpass(
+                "Please enter Cisco enable password: "
+            )
         return
 
     if os.path.exists(config_file_name):
         config_string = Path(config_file_name).read_text()
         config_tmp = toml.loads(config_string)
         SETTINGS = _configure_backend(Settings(**config_tmp))
+        if not SETTINGS.network.password:
+            SETTINGS.network.password = getpass.getpass("Please enter password for network devices: ")
+        if SETTINGS.network.enable \
+                and not SETTINGS.network.napalm_extras \
+                and not SETTINGS.network.napalm_extras.optional_args \
+                and not SETTINGS.network.napalm_extras.optional_args.secret:
+            SETTINGS.network.napalm_extras.optional_args.secret = getpass.getpass(
+                "Please enter Cisco enable password: "
+            )
         return
 
     SETTINGS = Settings()

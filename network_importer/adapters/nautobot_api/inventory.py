@@ -13,6 +13,11 @@ from network_importer.inventory import NetworkImporterInventory, NetworkImporter
 from network_importer.utils import build_filter_params
 from network_importer.adapters.nautobot_api.settings import InventorySettings
 
+PLATFORM_OVERRIDE = {
+    "cisco-ios": "cisco_ios",
+    "cisco-nxos": "cisco_nxos",
+    "juniper-junos": "juniper_junos",
+}
 
 class NautobotAPIInventory(NetworkImporterInventory):
     """Nautobot API Inventory Class."""
@@ -96,7 +101,7 @@ class NautobotAPIInventory(NetworkImporterInventory):
                 if not dev.platform:
                     continue
 
-                if dev.platform.slug not in self.supported_platforms:
+                if dev.platform.slug not in self.supported_platforms and dev.platform.slug not in PLATFORM_OVERRIDE:
                     continue
 
             # Add value for IP address
@@ -127,8 +132,10 @@ class NautobotAPIInventory(NetworkImporterInventory):
             if dev.platform and dev.platform.slug in platforms_mapping:
                 host.connection_options = {"napalm": ConnectionOptions(platform=platforms_mapping[dev.platform.slug])}
 
-            if dev.platform:
+            if dev.platform and dev.platform not in PLATFORM_OVERRIDE:
                 host.platform = dev.platform.slug
+            elif dev.platform and dev.platform in PLATFORM_OVERRIDE:
+                host.platform = PLATFORM_OVERRIDE[dev.platform.slug]
             else:
                 host.platform = None
 

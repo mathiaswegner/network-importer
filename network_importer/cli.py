@@ -65,6 +65,8 @@ def init(config_file):
 
     if config.SETTINGS.logs.level == "debug":
         LOGGER.setLevel(logging.DEBUG)
+        logging.getLogger("paramiko.transport").setLevel(logging.DEBUG)
+        logging.getLogger("nornir.core.task").setLevel(logging.DEBUG)
     elif config.SETTINGS.logs.level == "warning":
         LOGGER.setLevel(logging.WARNING)
     else:
