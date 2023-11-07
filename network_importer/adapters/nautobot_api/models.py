@@ -336,15 +336,29 @@ class NautobotIPAddress(IPAddress):
         Returns:
             NautobotIPAddress: DiffSync object
         """
-        try:
-            item = super().create(ids=ids, diffsync=diffsync, attrs=attrs)
-            nb_params = item.translate_attrs_for_nautobot(attrs)
-            # Add status because it's a mandatory field.
-            nb_params["status"] = "active"
-            ip_address = diffsync.nautobot.ipam.ip_addresses.create(**nb_params)
-        except pynautobot.core.query.RequestError as exc:
-            LOGGER.warning("Unable to create the ip address %s in %s (%s)", ids["address"], diffsync.name, exc.error)
-            return None
+        LOGGER.info("Creating IP %s w/ids %s and attrs %s", ids["address"], ids, attrs)
+        ip_address = None
+        item = super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+        search = ids["address"].split("/")[0]
+        LOGGER.info("searching for existing IP address %s", search)
+        ip_address = diffsync.nautobot.ipam.ip_addresses.get(address=search)
+        if ip_address:
+            LOGGER.info("Found existing IP address %s, updating in place", ip_address)
+            if ip_address and ip_address.address != ids["address"]:
+                LOGGER.warning("Found existing IP address %s, updating in place", ip_address)
+                ip_address.address = ids["address"]
+                ip_address.save()
+        else:
+            LOGGER.warning("Unable to find existing ip address %s, creating", ids["address"])
+            try:
+                LOGGER.info("Creating new IP address %s", ids["address"])
+                nb_params = item.translate_attrs_for_nautobot(attrs)
+                # Add status because it's a mandatory field.
+                nb_params["status"] = "active"
+                ip_address = diffsync.nautobot.ipam.ip_addresses.create(**nb_params)
+            except pynautobot.core.query.RequestError as exc:
+                LOGGER.warning("Unable to find existing ip address %s in %s (%s)", ids["address"], diffsync.name, exc.error)
+                return None
 
         LOGGER.info("Created IP %s (%s) in Nautobot", ip_address.address, ip_address.id)
         item.remote_id = ip_address.id
@@ -437,13 +451,19 @@ class NautobotPrefix(Prefix):
         """
         item = super().create(ids=ids, diffsync=diffsync, attrs=attrs)
         nb_params = item.translate_attrs_for_nautobot(attrs)
+        prefix = None
 
-        try:
-            prefix = diffsync.nautobot.ipam.prefixes.create(**nb_params)
-            LOGGER.info("Created Prefix %s (%s) in Nautobot", prefix.prefix, prefix.id)
-        except pynautobot.core.query.RequestError as exc:
-            LOGGER.warning("Unable to create Prefix %s in %s (%s)", ids["prefix"], diffsync.name, exc.error)
-            return None
+        LOGGER.info("Looking for existing prefix %s", ids["prefix"])
+        prefix = diffsync.nautobot.ipam.prefixes.get(prefix=ids["prefix"])
+        if prefix:
+            LOGGER.info("Found existing prefix %s, updating in place", prefix)
+        else:
+            try:
+                prefix = diffsync.nautobot.ipam.prefixes.create(**nb_params)
+                LOGGER.info("Created Prefix %s (%s) in Nautobot", prefix.prefix, prefix.id)
+            except pynautobot.core.query.RequestError as exc:
+                LOGGER.warning("Unable to create Prefix %s in %s (%s)", ids["prefix"], diffsync.name, exc.error)
+                return None
 
         item.remote_id = prefix.id
 
